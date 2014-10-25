@@ -11,6 +11,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap as Basemap#For the drawing on a map
+from graph import utilgraph
+from graph import pairwiseNet as pwn
 
 
 from collections import defaultdict
@@ -47,22 +49,19 @@ def hourExtract (Times):
     hour = hourmns[0]
     return hour
 
+    
 def dateExtract (Times):
     Time = Times.split()
     dateTweet = Time[0]+Time[1]+Time[2]+Time[5]
     return dateTweet
 
-# Create a pairewise network e.g. from reply messages with @ or with the retweet messages wit RT@    
-def pairewiseNetwork (setofnodes1, setofnodes2):
-    g = nx.Graph()
-    for ind in range(len(setofnodes1)):
-        if setofnodes1[ind]:
-            g.add_node(setofnodes1[ind])
-        if setofnodes2[ind]:
-            g.add_node(setofnodes2[ind])    
-    g.add_edges_from(creatEdges(setofnodes1, setofnodes2))
-    return g
 
+
+#Create a pairewise network with the exact date of the tweet as an attribute to the node. This encapsulation of
+#the pairwise will allows us to construct some temporal windows. 
+
+
+            
 #Create a graph that can store multiedges
 #Multi-edges are multiple edges between two nodes. Each edge can hold optional data or attributes.
 def multiEdgesNetwork (setofnodes1,setofnodes2,setofnodes3):
@@ -76,11 +75,15 @@ def multiEdgesNetwork (setofnodes1,setofnodes2,setofnodes3):
         if setofnodes3[ind]:
             g.add_node(setofnodes3[ind])
         
-    g.add_edges_from(creatEdges(setofnodes1, setofnodes2))
-    g.add_edges_from(creatEdges(setofnodes1, setofnodes3))
+    g.add_edges_from(pwn.creatEdges(setofnodes1, setofnodes2))
+    g.add_edges_from(pwn.creatEdges(setofnodes1, setofnodes3))
     
     
     return g
+
+   
+            
+    
 
 def drawNodesOnMap():
     m = Basemap(
@@ -118,13 +121,6 @@ def drawNodesOnMap():
     plt.show()
 
    
-def creatEdges (users, toPseudos):
-    edges = list()
-    for i in range(len(users)):
-        if toPseudos[i]:
-            e=(users[i],toPseudos[i])
-            edges.append(e)
-    return edges       
 
 
 def main():    
@@ -136,20 +132,22 @@ def main():
             for (i,v) in enumerate(row):
                 columns[i].append(v)
                 
-    print len(columns)
+    #print len(columns)
     
     
     
     #Construct the network with NetworkX library, please note that the index of columns change depending on the edges that you want to create
-    G = pairewiseNetwork(columns[1],columns[2])
+    G = pwn.pairewiseNetworkDate(columns[1],columns[2],columns[6])
     
     #Analysis of the network
 
-    print G.number_of_nodes()
-    print G.number_of_edges()
+    #print G.number_of_nodes()
+    #print G.number_of_edges()
     #print G.degree()
-    print G.nodes()
-     
+    print G.nodes(data=True)
+    
+    #nx.write_gexf(G, '../tweetFromTo.gexf')
+    utilgraph.write_dgs(G, '../tweetFromTo.dgs')
     #Draw the graph with the layout parameter
     
     #pos = nx.spring_layout(g)
