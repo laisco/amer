@@ -29,7 +29,7 @@ def write_dgs(G,path):
 class DGSWriter ():
 #class for writing dgs file
 #use writer_dgs function
-    def _init_ (self,mode='static'):
+    def __init__ (self):
                 # counters for edge and attribute identifiers
         self.edge_id=itertools.count()
         self.attr_id=itertools.count()
@@ -87,11 +87,25 @@ class DGSWriter ():
             node_id = make_str(node_data.pop('id',node))
             
             f.write ('{0:2s} {1:3s}'.format('an', '"'+node_id+'"')+'\n')
-        """    
-        for u,v,data in G.edges_iter(data=True):
-                    edge_data = data.copy()
+        def edge_key_data(G):
+            # helper function to unify multigraph and graph edge iterator
+            if G.is_multigraph():
+                for u,v,key,data in G.edges_iter(data=True,keys=True):
+                    edge_data=data.copy()
+                    edge_data.update(key=key)
                     edge_id=edge_data.pop('id',None)
                     if edge_id is None:
-                        edge_id = next(self.edge_id)
-        """
+                        edge_id=next(self.edge_id)
+                    yield u,v,edge_id,edge_data
+            else:
+                for u,v,data in G.edges_iter(data=True):
+                    edge_data=data.copy()
+                    edge_id=edge_data.pop('id',None)
+                    if edge_id is None:
+                        edge_id=next(self.edge_id)
+                    yield u,v,edge_id,edge_data
+                    
+        for u,v,key,edge_data in edge_key_data(G):
+            f.write('{0:2s} {1:3s} {2:4s} {3:5s}'.format('ae', '"'+make_str(key)+'"','"'+make_str(u)+'"','"'+make_str(v)+'"')+'\n')
+            
         f.close()
