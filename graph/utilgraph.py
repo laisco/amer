@@ -78,15 +78,20 @@ class DGSWriter ():
                     
     def write(self,path, G):
         header = 'DGS004'
-        graphName  = 'tweetFromTO 0 0'
+        graphName  = '"tweetFromTO" 0 0'
         f = open (path,'w')
         f.write(header+'\n')
         f.write(graphName+'\n') 
+        """
+        #Get all the attributes in the nodes in data
         for node,data in G.nodes_iter(data=True):
             node_data = data.copy()
             node_id = make_str(node_data.pop('id',node))
+            node_time = make_str(node_data.pop('time',node))
+            #print node_time
             
             f.write ('{0:2s} {1:3s}'.format('an', '"'+node_id+'"')+'\n')
+        """    
         def edge_key_data(G):
             # helper function to unify multigraph and graph edge iterator
             if G.is_multigraph():
@@ -104,8 +109,16 @@ class DGSWriter ():
                     if edge_id is None:
                         edge_id=next(self.edge_id)
                     yield u,v,edge_id,edge_data
-                    
-        for u,v,key,edge_data in edge_key_data(G):
+        users = list()            
+        for u,v,key,edge_data in edge_key_data(G):       
+             
+            if make_str(u) not in users:
+                f.write ('{0:2s} {1:3s}'.format('an', '"'+make_str(u)+'"')+'\n')
+                users.append(make_str(u))
+            if make_str(v) not in users:
+                f.write ('{0:2s} {1:3s}'.format('an', '"'+make_str(v)+'"')+'\n')    
+                users.append(make_str(v))    
             f.write('{0:2s} {1:3s} {2:4s} {3:5s}'.format('ae', '"'+make_str(key)+'"','"'+make_str(u)+'"','"'+make_str(v)+'"')+'\n')
+            
             
         f.close()
