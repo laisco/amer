@@ -9,8 +9,8 @@ import re
 import networkx as nx
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap as Basemap#For the drawing on a map
+from graph import utilgraph
+from graph import pairwiseNet as pwn
 
 
 from collections import defaultdict
@@ -47,85 +47,41 @@ def hourExtract (Times):
     hour = hourmns[0]
     return hour
 
+    
 def dateExtract (Times):
     Time = Times.split()
     dateTweet = Time[0]+Time[1]+Time[2]+Time[5]
     return dateTweet
 
-# Create a pairewise network e.g. from reply messages with @ or with the retweet messages wit RT@    
-def pairewiseNetwork (setofnodes1, setofnodes2):
-    g = nx.Graph()
-    for ind in range(len(setofnodes1)):
-        if setofnodes1[ind]:
-            g.add_node(setofnodes1[ind])
-        if setofnodes2[ind]:
-            g.add_node(setofnodes2[ind])    
-    g.add_edges_from(creatEdges(setofnodes1, setofnodes2))
-    return g
-
-#Create a graph that can store multiedges
-#Multi-edges are multiple edges between two nodes. Each edge can hold optional data or attributes.
-def multiEdgesNetwork (setofnodes1,setofnodes2,setofnodes3):
-    g= nx.MultiGraph()
+#Create temporal windows with one day for each window 
+def usersFromToDays (u,v,time):
+    listtodayu = list()
+    listtodayv = list()
+    listdayu = list()
+    listdayv = list()
+    timesplit = time[0].split()
+    today = timesplit[2]
+    tommorow = int(today) +1
     
-    for ind in range(len(setofnodes1)):
-        if setofnodes1[ind]:
-            g.add_node(setofnodes1[ind])
-        if setofnodes2[ind]:
-            g.add_node(setofnodes2[ind])
-        if setofnodes3[ind]:
-            g.add_node(setofnodes3[ind])
+    for i in range (len(u)):    
+        if int(today)!=tommorow:
+            listtodayu.append(u[i])
+            listtodayv.append(v[i])
+        else:
+            tommorow=int(today) +1
+            listdayu.append(listtodayu)
+            listtodayu = list()
+            listdayv.append(listtodayv)
+            listtodayv = list()
+        if i!=len(u)-1:    
+            timesplit = time[i+1].split()
+            today = timesplit[2]
         
-    g.add_edges_from(creatEdges(setofnodes1, setofnodes2))
-    g.add_edges_from(creatEdges(setofnodes1, setofnodes3))
+    return listdayu,listdayv
+        
+        
+            
     
-    
-    return g
-
-def drawNodesOnMap():
-    m = Basemap(
-        projection='merc',
-        llcrnrlon=-130,
-        llcrnrlat=25,
-        urcrnrlon=-60,
-        urcrnrlat=50,
-        lat_ts=0,
-        resolution='i',
-        suppress_ticks=True)
-    # position in decimal lat/lon
-    lats=[37.96,42.82]
-    lons=[-121.29,-73.95]
-    # convert lat and lon to map projection
-    mx,my=m(lons,lats)
-    
-    # The NetworkX part
-    # put map projection coordinates in pos dictionary
-    G=nx.Graph()
-    G.add_edge('a','b')
-    pos={}
-    pos['a']=(mx[0],my[0])
-    pos['b']=(mx[1],my[1])
-    # draw
-    nx.draw_networkx(G,pos,node_size=200,node_color='blue')
-    
-    # Now draw the map
-    m.drawcountries()
-    m.drawstates()
-    #m.bluemarble()
-    #m.shadedrelief()
-    #m.etopo()
-    plt.title('How to get from point a to point b')
-    plt.show()
-
-   
-def creatEdges (users, toPseudos):
-    edges = list()
-    for i in range(len(users)):
-        if toPseudos[i]:
-            e=(users[i],toPseudos[i])
-            edges.append(e)
-    return edges       
-
 
 def main():    
     columns = defaultdict(list)
@@ -136,20 +92,22 @@ def main():
             for (i,v) in enumerate(row):
                 columns[i].append(v)
                 
-    print len(columns)
+    #print len(columns)
     
     
-    
+    u, v = usersFromToDays(columns[1],columns[2],columns[6])
     #Construct the network with NetworkX library, please note that the index of columns change depending on the edges that you want to create
-    G = pairewiseNetwork(columns[1],columns[2])
+    G = pwn.pairewiseNetworkDate(u,v,columns[6])
     
     #Analysis of the network
 
-    print G.number_of_nodes()
-    print G.number_of_edges()
+    #print G.number_of_nodes()
+    #print G.number_of_edges()
     #print G.degree()
-    print G.nodes()
-     
+    #print G.nodes(data=True)
+    
+    #nx.write_gexf(G, '../tweetFromTo.gexf')
+    utilgraph.write_dgs(G, '../tweetFromTo.dgs')
     #Draw the graph with the layout parameter
     
     #pos = nx.spring_layout(g)
